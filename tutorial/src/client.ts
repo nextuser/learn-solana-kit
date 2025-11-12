@@ -2,23 +2,36 @@
 //     SolanaRpcApi,
 //     SolanaRpcSubscriptionsApi
 // } from '@solana/kit'
-
+import * as dotenv from 'dotenv'
 import type{
     //RpcSubscriptions,
     Rpc,
-    RpcSubscriptions
-} from '@solana/kit'
-
-import  {
+    RpcSubscriptions} from '@solana/kit'
+import {
     SolanaRpcApi,
     createSolanaRpc,
     SolanaRpcSubscriptionsApi,
     createSolanaRpcSubscriptions,
     Address,
-    
+    appendTransactionMessageInstruction,
+    BaseTransactionMessage, 
+    TransactionMessageWithFeePayer 
     
 } from '@solana/kit'
-import * as dotenv from 'dotenv'
+
+import {
+    estimateComputeUnitLimitFactory,getSetComputeUnitLimitInstruction
+} from '@solana-program/compute-budget'
+
+import path from 'path'
+import { Keypair } from "@solana/web3.js";
+import { KeyPairSigner} from '@solana/signers'
+import { createKeyPairSignerFromPrivateKeyBytes ,createKeyPairSignerFromBytes} from '@solana/kit';
+import fs from 'fs'
+dotenv.config()
+
+export const token2022Addr = 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+export const tokenAddr     = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
 
 export class Client {
       rpc:Rpc<SolanaRpcApi>;
@@ -65,7 +78,6 @@ let client:Client | undefined;
 //const endPoint = 'https://api.mainnet-beta.solana.com';
 //const wssPoint = 'wss://api.mainnet-beta.solana.com'
 //https://devnet.helius-rpc.com/?api-key=8df9cdc2-6352-4f14-8d24-cd6b24ae7ae1
-dotenv.config();
 const HELIUS_API_KEY = process.env.HELIUS_API_KEY;
 
 export type EndPoints = {
@@ -158,37 +170,7 @@ export async function getPlayground(env : 'dev'|'local'|'main') :Promise<Playgro
 
 }
 
-import {
-    appendTransactionMessageInstruction,
-    
-} from '@solana/kit'
-import { BaseTransactionMessage, TransactionMessageWithFeePayer } from '@solana/kit';
 
-import {
-    estimateComputeUnitLimitFactory,getSetComputeUnitLimitInstruction
-} from '@solana-program/compute-budget'
-
-type TransMessage =  BaseTransactionMessage & TransactionMessageWithFeePayer;
-// export function  estimateAndSetGas(...params: Parameters<typeof estimateComputeUnitLimitFactory> ){
-
-//         const estimate =  estimateComputeUnitLimitFactory(...params)
-        
-//         return async <T extends TransMessage> (transactionMessage:T)=>{
-//             const cu = await  estimate(transactionMessage)
-//             return appendTransactionMessageInstruction(
-//                                     getSetComputeUnitLimitInstruction({ units: cu}),
-//                                     transactionMessage);
-//         }
-// }
-
-
-
-import path from 'path'
-import { Keypair } from "@solana/web3.js";
-import { KeyPairSigner} from '@solana/signers'
-import { createKeyPairSignerFromPrivateKeyBytes ,createKeyPairSignerFromBytes} from '@solana/kit';
-import fs from 'fs'
-dotenv.config()
 export async function readKeypair(user:string = "id"):Promise<Keypair>{
     const keyContent = fs.readFileSync(path.resolve(process.env.HOME??"~/" ,`.config/solana/${user}.json`));
     const keyBytes = new Uint8Array(JSON.parse(keyContent.toString()));
