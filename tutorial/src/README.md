@@ -19,3 +19,7 @@ HELIUS_API_KEY=8e3be8c1...
 source ./.env
 npx tsx src/index.tsx
 ```
+## pipe 的用法
+expand.ts
+## 生成代币
+genToken.ts ,

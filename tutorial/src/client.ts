@@ -13,14 +13,50 @@ import  {
     SolanaRpcApi,
     createSolanaRpc,
     SolanaRpcSubscriptionsApi,
-    createSolanaRpcSubscriptions
+    createSolanaRpcSubscriptions,
+    Address,
+    
     
 } from '@solana/kit'
 import * as dotenv from 'dotenv'
 
-export type Client = {
-     rpc:Rpc<SolanaRpcApi>;
-     rpcSubscriptions:RpcSubscriptions<SolanaRpcSubscriptionsApi>;
+export class Client {
+      rpc:Rpc<SolanaRpcApi>;
+      rpcSubscriptions:RpcSubscriptions<SolanaRpcSubscriptionsApi>;
+
+
+      private airdropFunction : ReturnType<typeof airdropFactory>;
+     constructor(rpc:Rpc<SolanaRpcApi>, rpcSubscriptions:RpcSubscriptions<SolanaRpcSubscriptionsApi>){
+        this.rpc = rpc
+        this.rpcSubscriptions = rpcSubscriptions
+        this.airdropFunction = airdropFactory({
+            rpc: this.rpc,
+            rpcSubscriptions: this.rpcSubscriptions
+        })
+        
+     };
+
+
+    getAppendGasComputeInstructions(){
+
+            const estimate = estimateComputeUnitLimitFactory({rpc:this.rpc})
+            
+            return async <T extends TransMessage> (transactionMessage:T)=>{
+                const cu = await  estimate(transactionMessage)
+                return appendTransactionMessageInstruction(
+                                        getSetComputeUnitLimitInstruction({ units: cu}),
+                                        transactionMessage);
+            }
+    }
+
+
+     async  airdrop(addr:Address,lamports_number:bigint){
+
+        await this.airdropFunction({
+                recipientAddress:addr, 
+                lamports:lamports(lamports_number),
+                commitment:'confirmed'})
+     }
 
 }
 
@@ -82,14 +118,16 @@ export function createClient():Client {
     return getClient("dev")
 }
 
+
 export  function getClient(env : EnvType) : Client{
     if(!clientMappling[env]){
         let point = pintMapping[env]
-        clientMappling[env] = {
-            rpc: createSolanaRpc(point.rpcPoint),
-            rpcSubscriptions: createSolanaRpcSubscriptions(point.wssPoint)
-        }
+        const rpc = createSolanaRpc(point.rpcPoint);
+        const rpcSubscriptions = createSolanaRpcSubscriptions(point.wssPoint);
+        clientMappling[env] = new Client( rpc, rpcSubscriptions);
     } 
+    
+
     return clientMappling[env];
 }
 import { TransactionSigner,
@@ -97,7 +135,6 @@ import { TransactionSigner,
         airdropFactory,
         generateKeyPairSigner,
         lamports } from '@solana/kit';
-
 export type Playground = {
     client:Client,
     wallet:TransactionSigner & MessageSigner,
@@ -144,5 +181,35 @@ export function  estimateAndSetGas(...params: Parameters<typeof estimateComputeU
         }
 }
 
+
+
+import path from 'path'
+import { Keypair } from "@solana/web3.js";
+import { KeyPairSigner} from '@solana/signers'
+import { createKeyPairSignerFromPrivateKeyBytes ,createKeyPairSignerFromBytes} from '@solana/kit';
+import fs from 'fs'
+dotenv.config()
+export async function readKeypair(user:string = "id"):Promise<Keypair>{
+    const keyContent = fs.readFileSync(path.resolve(process.env.HOME??"~/" ,`.config/solana/${user}.json`));
+    const keyBytes = new Uint8Array(JSON.parse(keyContent.toString()));
+    const keypair = Keypair.fromSecretKey(keyBytes);
+    console.log("red address:",keypair.publicKey.toBase58(),'for user:',user);
+    return keypair;
+}
+
+export async function readSigner(user:string = "id"):Promise<KeyPairSigner>{
+    const keypair = await readKeypair(user);
+    //console.log("skey length",keypair.secretKey.length)
+    ////console.log(keypair)
+    return await createKeyPairSignerFromPrivateKeyBytes(keypair.secretKey.slice(0,32), true);
+}
+
+
+export async function oldReadSigner(keyContent : string){
+        const keyBytes = new Uint8Array(JSON.parse(keyContent));
+        const signer = await createKeyPairSignerFromBytes(keyBytes);
+        const keypair = Keypair.fromSecretKey(keyBytes);
+        console.log("address:",keypair.publicKey.toBase58());
+}
 
 //const sendAndConfirmTransaction = sendAndConfirmTransactionFactory({ rpc, rpcSubscriptions });

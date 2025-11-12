@@ -19,6 +19,8 @@ import {
    
 } from '@solana/kit'
 import bs58 from 'bs58'
+
+import {fetchMint} from '@solana-program/token'
 //import { base58 }from '@solana/codecs-strings'
 
 
@@ -40,6 +42,8 @@ async function test(){
     accounts satisfies MaybeEncodedAccount[]
 
 }
+
+
 
 /**
  * pub struct Mint {
@@ -109,6 +113,9 @@ async function testMintCoder(){
         let value = mintAuthority.value
         console.log("authority:",mintAuthority.value)
     }
+
+    const mintAccount = await fetchMint(client.rpc,address(MINT_ADDR));
+    console.log("mintAccount :",mintAccount)
 }
 
    
