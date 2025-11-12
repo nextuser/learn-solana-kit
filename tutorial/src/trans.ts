@@ -15,7 +15,6 @@ import { getClient, readSigner } from 'client.ts';
 
 import { readKeypair } from 'client.ts';
 import { lamports } from '@solana/kit';
-import {estimateAndSetGas} from 'client.ts';
 async function testTrans(){
     const signer = await readSigner("first");
     const dest = await readSigner("second");
@@ -23,7 +22,6 @@ async function testTrans(){
     // await client.airdrop(dest.address,1000_000_000n);
     // await client.airdrop(signer.address,1000_000_000n);
     const result = await client.rpc.getLatestBlockhash().send();
-    const estimate = await estimateAndSetGas({rpc:client.rpc})
 
     const transactionMessage = await pipe(
         createTransactionMessage({version:0}),
@@ -44,18 +42,13 @@ async function testTrans(){
         (m) => client.getAppendGasComputeInstructions()(m)
     )
 
-    // const signerConfig :BaseSignerConfig = {
-    //     payer:signer,
-    //     blockhash:result.value.blockhash,
-    //     lastValidBlockHeight:result.value.lastValidBlockHeight,
-    // }
     const signedTransction = await signTransactionMessageWithSigners(transactionMessage);
     const txSignature = getSignatureFromTransaction(signedTransction);
     console.log("signature: txSignature")
 
     const encodeTx = getBase64EncodedWireTransaction(signedTransction);
     let digest = await client.rpc.sendTransaction(encodeTx,{preflightCommitment:'confirmed', encoding:'base64'}).send()
-    console.log('info',digest)
+    console.log('tx.digest:',digest)
 
 }
 

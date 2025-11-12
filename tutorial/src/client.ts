@@ -169,17 +169,17 @@ import {
 } from '@solana-program/compute-budget'
 
 type TransMessage =  BaseTransactionMessage & TransactionMessageWithFeePayer;
-export function  estimateAndSetGas(...params: Parameters<typeof estimateComputeUnitLimitFactory> ){
+// export function  estimateAndSetGas(...params: Parameters<typeof estimateComputeUnitLimitFactory> ){
 
-        const estimate =  estimateComputeUnitLimitFactory(...params)
+//         const estimate =  estimateComputeUnitLimitFactory(...params)
         
-        return async <T extends TransMessage> (transactionMessage:T)=>{
-            const cu = await  estimate(transactionMessage)
-            return appendTransactionMessageInstruction(
-                                    getSetComputeUnitLimitInstruction({ units: cu}),
-                                    transactionMessage);
-        }
-}
+//         return async <T extends TransMessage> (transactionMessage:T)=>{
+//             const cu = await  estimate(transactionMessage)
+//             return appendTransactionMessageInstruction(
+//                                     getSetComputeUnitLimitInstruction({ units: cu}),
+//                                     transactionMessage);
+//         }
+// }
 
 
 

@@ -5,7 +5,7 @@ import type {Client} from './client.ts'
 import { TOKEN_PROGRAM_ADDRESS ,getInitializeMintInstruction} from '@solana-program/token';
 import { KeyPairSigner, SendableTransaction, assertIsSendableTransaction, generateKeyPairSigner, getBase64EncodedWireTransaction, signAndSendTransactionMessageWithSigners, signTransactionMessageWithSigners } from '@solana/kit'
 
-import { estimateAndSetGas, getPlayground } from "client.ts";
+import {  getPlayground } from "client.ts";
 import {
     appendTransactionMessageInstructions,
     appendTransactionMessageInstruction,
@@ -57,7 +57,7 @@ export async function createMint( options:{decimals?:number} = {}){
         (tx)=>setTransactionMessageFeePayerSigner(pg.wallet,tx),
         (tx)=>setTransactionMessageLifetimeUsingBlockhash(latestBlockhash,tx),
         (tx) =>appendTransactionMessageInstructions([createAccountInstrction,initialzeMintTx],tx),
-        (tx) => estimateAndSetGas({rpc:pg.client.rpc})(tx),
+        (tx) => client.getAppendGasComputeInstructions()(tx),
     );//end pipe
 
     // const estimate =  estimateComputeUnitLimitFactory({rpc:pg.client.rpc})
