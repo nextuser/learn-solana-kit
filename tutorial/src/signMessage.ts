@@ -18,18 +18,6 @@ const myTxMessage = pipe(
 const tx = await signTransactionMessageWithSigners(myTxMessage);
 console.log(tx);
 
-/** 
-
-const myMessageModifySigner : MessageModifyingSigner<'111'>= {
-    address: address('111'),
-    modifyAndSignMessages:async(messages:SignableMessage[]):Promise<SignableMessage[]> => {
-        const otherSigner =  generateKeyPairSigner();
-        return async (messages:SignableMessage[]) :Promise<SignableMessage[]> =>{
-              return mySigner.signMessages(messages)
-        }
-    }
-}
-*/
 import { createSignerFromKeyPair,generateKeyPair,KeyPairSigner,
     createKeyPairSignerFromBytes
 

@@ -1,13 +1,7 @@
-// import type {
-//     SolanaRpcApi,
-//     SolanaRpcSubscriptionsApi
-// } from '@solana/kit'
 import * as dotenv from 'dotenv'
-import type{
-    //RpcSubscriptions,
-    Rpc,
-    RpcSubscriptions} from '@solana/kit'
 import {
+    type Rpc,
+    type RpcSubscriptions,
     SolanaRpcApi,
     createSolanaRpc,
     SolanaRpcSubscriptionsApi,
@@ -24,17 +18,19 @@ import {
     createTransactionMessage,
     setTransactionMessageFeePayerSigner,
     setTransactionMessageLifetimeUsingBlockhash,
+    getSignatureFromTransaction,
+    getBase64EncodedWireTransaction,
+    Commitment,
     
 } from '@solana/kit'
 
-
-
 import {
-    estimateComputeUnitLimitFactory,getSetComputeUnitLimitInstruction
+    estimateComputeUnitLimitFactory,
+    getSetComputeUnitLimitInstruction,
 } from '@solana-program/compute-budget'
 
 import path from 'path'
-import { Keypair } from "@solana/web3.js";
+import {  Keypair } from "@solana/web3.js";
 import { KeyPairSigner} from '@solana/signers'
 import { createKeyPairSignerFromPrivateKeyBytes ,createKeyPairSignerFromBytes} from '@solana/kit';
 import fs from 'fs'
@@ -65,30 +61,14 @@ export class Client {
         
      };
 
-
-    // getAppendGasComputeInstructions(){
-
-    //         const estimate = estimateComputeUnitLimitFactory({rpc:this.rpc})
-            
-    //         return async <T extends BaseTransactionMessage & TransactionMessageWithFeePayer > (transactionMessage:T)=>{
-    //             const cu = await  estimate(transactionMessage)
-    //             return appendTransactionMessageInstruction(
-    //                                     getSetComputeUnitLimitInstruction({ units: cu}),
-    //                                     transactionMessage);
-    //         }
-    // }
     async appendGasComputeInstructions(transactionMessage:BaseTransactionMessage & TransactionMessageWithFeePayer){
 
-            const estimate = estimateComputeUnitLimitFactory({rpc:this.rpc})
-            const cu = await  estimate(transactionMessage);
-            return appendTransactionMessageInstruction(
-                                        getSetComputeUnitLimitInstruction({ units: cu}),
-                                        transactionMessage);
-
+        const estimate = estimateComputeUnitLimitFactory({rpc:this.rpc})
+        const cu = await  estimate(transactionMessage);
+        return appendTransactionMessageInstruction(
+                                    getSetComputeUnitLimitInstruction({ units: cu}),
+                                    transactionMessage);
     }
-
-
-
     /**
      *  client.sendAndConfirmTranaction(transaction, { commitment: 'confirmed' })
      * @param params 
@@ -98,10 +78,17 @@ export class Client {
         return sendAndConfirm(...params)
     }
 
+    async sendSignedTransaction(tx : Transaction,commitment:Commitment = 'confirmed'){
+        const signature = getSignatureFromTransaction(tx)
+        console.log('signature',signature);
+    
+        const encodeTx = getBase64EncodedWireTransaction(tx);
+        let digest = await this.rpc.sendTransaction(encodeTx,{preflightCommitment:commitment, encoding:'base64'}).send()
+        return signature;
+    }
 
-    async createDefaultTransaction (
-        feePayer: TransactionSigner
-        )
+
+    async createDefaultTransaction (feePayer: TransactionSigner)
     {
         const { value: latestBlockhash } = await this.rpc
             .getLatestBlockhash()
@@ -127,7 +114,7 @@ let client:Client | undefined;
 
 //const endPoint = 'https://api.mainnet-beta.solana.com';
 //const wssPoint = 'wss://api.mainnet-beta.solana.com'
-//https://devnet.helius-rpc.com/?api-key=8df9cdc2-6352-4f14-8d24-cd6b24ae7ae1
+//https://devnet.helius-rpc.com/?api-key=${process.env.HELIUS_API_KEY}
 const HELIUS_API_KEY = process.env.HELIUS_API_KEY;
 
 export type EndPoints = {

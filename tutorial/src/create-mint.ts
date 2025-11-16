@@ -13,6 +13,7 @@ import {
     pipe,
     setTransactionMessageFeePayerSigner,
     setTransactionMessageLifetimeUsingBlockhash,
+    getSignatureFromTransaction
     
 } from '@solana/kit';
 
@@ -63,22 +64,15 @@ export async function createMint( options:{decimals?:number} = {}){
         (tx) => client.appendGasComputeInstructions(tx),
     );//end pipe
 
-    // const estimate =  estimateComputeUnitLimitFactory({rpc:pg.client.rpc})
-    // const computeUnitsEstimate = await estimate(txMessage);
-    // console.log("computeUnitsEstimate",computeUnitsEstimate)
-
-    // const txWithComputeUnit = appendTransactionMessageInstruction(
-    //     getSetComputeUnitLimitInstruction({units:computeUnitsEstimate}),
-    //     txMessage
-    // )
     const tx = await signTransactionMessageWithSigners(txMessage);
-    // assertIsSendableTransaction(tx);
-    // tx satisfies SendableTransaction
-    ///console.log("transaction signature:",tx.signatures)
+    // const signature = getSignatureFromTransaction(tx)
+    // console.log('signature',signature);
 
-    const encodeTx = getBase64EncodedWireTransaction(tx);
-    let digest = await client.rpc.sendTransaction(encodeTx,{preflightCommitment:'confirmed', encoding:'base64'}).send()
-    console.log('info',digest)
+    // const encodeTx = getBase64EncodedWireTransaction(tx);
+    // let digest = await client.rpc.sendTransaction(encodeTx,{preflightCommitment:'confirmed', encoding:'base64'}).send()
+    // console.log('digest',digest)
+    const digest = await client.sendSignedTransaction(tx,'confirmed');
+    console.log("tx digest:",digest);
 
 
 }
