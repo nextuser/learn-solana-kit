@@ -11,9 +11,9 @@ import { createTransactionMessage,
         getBase64EncodedWireTransaction,
         BaseSignerConfig
     } from '@solana/kit'
-import { getClient, readSigner } from 'client.ts';
+import { getClient, readSigner } from './client.ts';
 
-import { readKeypair } from 'client.ts';
+import { readKeypair } from './client.ts';
 import { lamports } from '@solana/kit';
 async function testTrans(){
     const signer = await readSigner("first");
@@ -23,31 +23,50 @@ async function testTrans(){
     // await client.airdrop(signer.address,1000_000_000n);
     const result = await client.rpc.getLatestBlockhash().send();
 
+    // const transactionMessage = await pipe(
+    //     createTransactionMessage({version:0}),
+    //     (m) => setTransactionMessageFeePayerSigner(signer, m),
+    //     (m) =>setTransactionMessageLifetimeUsingBlockhash(result.value, m),
+    //     (m) => appendTransactionMessageInstruction(
+    //         getAddMemoInstruction({ memo:"this is some memo from charles"}),
+    //         m
+    //     ),
+    //     (m) => appendTransactionMessageInstruction(
+    //         getTransferSolInstruction({
+    //             destination:dest.address,
+    //             amount:lamports(1n),
+    //             source:signer,
+    //         }),
+    //         m
+    //     ),
+    //     (m) => client.apppendGasComputeInstructions(m)
+    // )
+
     const transactionMessage = await pipe(
-        createTransactionMessage({version:0}),
+        createTransactionMessage({version: 0}),
         (m) => setTransactionMessageFeePayerSigner(signer, m),
-        (m) =>setTransactionMessageLifetimeUsingBlockhash(result.value, m),
+        (m) => setTransactionMessageLifetimeUsingBlockhash(result.value, m),
         (m) => appendTransactionMessageInstruction(
-            getAddMemoInstruction({ memo:"this is some memo from charles"}),
+            getAddMemoInstruction({ memo: "this is some memo from charles" }),
             m
         ),
         (m) => appendTransactionMessageInstruction(
             getTransferSolInstruction({
-                destination:dest.address,
-                amount:lamports(1n),
-                source:signer,
+            destination: dest.address,
+            amount: lamports(1n),
+            source: signer,
             }),
             m
         ),
-        (m) => client.getAppendGasComputeInstructions()(m)
-    )
-
+        (m) => client.appendGasComputeInstructions(m)
+    );
     const signedTransction = await signTransactionMessageWithSigners(transactionMessage);
     const txSignature = getSignatureFromTransaction(signedTransction);
-    console.log("signature: txSignature")
+    console.log("signature: ",txSignature)
 
-    const encodeTx = getBase64EncodedWireTransaction(signedTransction);
-    let digest = await client.rpc.sendTransaction(encodeTx,{preflightCommitment:'confirmed', encoding:'base64'}).send()
+    //const encodeTx = getBase64EncodedWireTransaction(signedTransction);
+    //let digest = await client.rpc.sendTransaction(encodeTx,{preflightCommitment:'confirmed', encoding:'base64'}).send()
+    let digest = await client.sendAndConfirmTransaction(signedTransction as any,{commitment:'confirmed'})
     console.log('tx.digest:',digest)
 
 }

@@ -23,6 +23,7 @@ export async function createMint( options:{decimals?:number} = {}){
     let wallet = pg.wallet;
     let mintSize =  getMintSize();
     const mint  = await generateKeyPairSigner();
+    console.log("token mint address:",mint.address)
     console.log("mintSize:",mintSize);
     const mintRent = await client.rpc.getMinimumBalanceForRentExemption(BigInt(mintSize)).send()
     const createAccountInstrction = getCreateAccountInstruction({
@@ -51,13 +52,15 @@ export async function createMint( options:{decimals?:number} = {}){
     
     const { value:latestBlockhash} = await pg.client.rpc.getLatestBlockhash().send()
     const txMessage = await pipe(
-        createTransactionMessage({
-            version:0
-        }),
-        (tx)=>setTransactionMessageFeePayerSigner(pg.wallet,tx),
-        (tx)=>setTransactionMessageLifetimeUsingBlockhash(latestBlockhash,tx),
+        // createTransactionMessage({
+        //     version:0
+        // }),
+        // (tx)=>setTransactionMessageFeePayerSigner(pg.wallet,tx),
+        
+        // (tx)=>setTransactionMessageLifetimeUsingBlockhash(latestBlockhash,tx),
+        await client.createDefaultTransaction(pg.wallet),
         (tx) =>appendTransactionMessageInstructions([createAccountInstrction,initialzeMintTx],tx),
-        (tx) => client.getAppendGasComputeInstructions()(tx),
+        (tx) => client.appendGasComputeInstructions(tx),
     );//end pipe
 
     // const estimate =  estimateComputeUnitLimitFactory({rpc:pg.client.rpc})

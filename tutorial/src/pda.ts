@@ -1,9 +1,10 @@
 import {
     Address,getAddressEncoder,getProgramDerivedAddress,address,
     padNullCharacters,
-    
-    
 } from '@solana/kit'
+import {
+    getAssociatedTokenAddressSync
+} from '@solana/spl-token'
 import { PublicKey } from '@solana/web3.js';
 
 import {
@@ -46,6 +47,9 @@ async function test_pda(){
     });
     console.log('pda' ,pda)
     console.log('bump' ,bump)
+
+
+
 
 }
 
@@ -92,8 +96,10 @@ async function test_find(){
         new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL'),
         seeds,
     );
-    console.log("expect 69RbiuQCcXuURHYSQYU2KSSSS6VE6ZRXT6xKj9h2GRmt")
-    console.log(pda?.toBase58())
+    console.log("try find result ",pda?.toBase58())
+
+    const account = getAssociatedTokenAddressSync(new PublicKey(mint_addr), new PublicKey(owner))
+    console.log("expected token account", account);
 }
 
 test_find();

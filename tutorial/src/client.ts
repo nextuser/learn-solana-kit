@@ -14,10 +14,20 @@ import {
     createSolanaRpcSubscriptions,
     Address,
     appendTransactionMessageInstruction,
-    BaseTransactionMessage, 
-    TransactionMessageWithFeePayer 
+    sendAndConfirmTransactionFactory,
+    Transaction,SendableTransaction,
+    TransactionMessage,
+    TransactionMessageWithFeePayer,
+    Instruction,
+    BaseTransactionMessage,
+    pipe,
+    createTransactionMessage,
+    setTransactionMessageFeePayerSigner,
+    setTransactionMessageLifetimeUsingBlockhash,
     
 } from '@solana/kit'
+
+
 
 import {
     estimateComputeUnitLimitFactory,getSetComputeUnitLimitInstruction
@@ -29,14 +39,20 @@ import { KeyPairSigner} from '@solana/signers'
 import { createKeyPairSignerFromPrivateKeyBytes ,createKeyPairSignerFromBytes} from '@solana/kit';
 import fs from 'fs'
 dotenv.config()
+if(!process.env.HELIUS_API_KEY){
+    console.error("export HELIUS_API_KEY first")
+}
 
 export const token2022Addr = 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
 export const tokenAddr     = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
 
+type FactoryReturnType = ReturnType<typeof sendAndConfirmTransactionFactory>;
+type SendAndConfirmTransactionParamType  = Parameters<FactoryReturnType >
+
 export class Client {
       rpc:Rpc<SolanaRpcApi>;
       rpcSubscriptions:RpcSubscriptions<SolanaRpcSubscriptionsApi>;
-
+      
 
       private airdropFunction : ReturnType<typeof airdropFactory>;
      constructor(rpc:Rpc<SolanaRpcApi>, rpcSubscriptions:RpcSubscriptions<SolanaRpcSubscriptionsApi>){
@@ -50,18 +66,52 @@ export class Client {
      };
 
 
-    getAppendGasComputeInstructions(){
+    // getAppendGasComputeInstructions(){
+
+    //         const estimate = estimateComputeUnitLimitFactory({rpc:this.rpc})
+            
+    //         return async <T extends BaseTransactionMessage & TransactionMessageWithFeePayer > (transactionMessage:T)=>{
+    //             const cu = await  estimate(transactionMessage)
+    //             return appendTransactionMessageInstruction(
+    //                                     getSetComputeUnitLimitInstruction({ units: cu}),
+    //                                     transactionMessage);
+    //         }
+    // }
+    async appendGasComputeInstructions(transactionMessage:BaseTransactionMessage & TransactionMessageWithFeePayer){
 
             const estimate = estimateComputeUnitLimitFactory({rpc:this.rpc})
-            
-            return async <T extends TransMessage> (transactionMessage:T)=>{
-                const cu = await  estimate(transactionMessage)
-                return appendTransactionMessageInstruction(
+            const cu = await  estimate(transactionMessage);
+            return appendTransactionMessageInstruction(
                                         getSetComputeUnitLimitInstruction({ units: cu}),
                                         transactionMessage);
-            }
+
     }
 
+
+
+    /**
+     *  client.sendAndConfirmTranaction(transaction, { commitment: 'confirmed' })
+     * @param params 
+     */
+    sendAndConfirmTransaction(... params:SendAndConfirmTransactionParamType  ){
+        const sendAndConfirm = sendAndConfirmTransactionFactory({ rpc: this.rpc, rpcSubscriptions: this.rpcSubscriptions });
+        return sendAndConfirm(...params)
+    }
+
+
+    async createDefaultTransaction (
+        feePayer: TransactionSigner
+        )
+    {
+        const { value: latestBlockhash } = await this.rpc
+            .getLatestBlockhash()
+            .send();
+        return pipe(
+            createTransactionMessage({ version: 0 }),
+            (tx) => setTransactionMessageFeePayerSigner(feePayer, tx),
+            (tx) => setTransactionMessageLifetimeUsingBlockhash(latestBlockhash, tx)
+        );
+    };  
 
      async  airdrop(addr:Address,lamports_number:bigint){
 
@@ -167,12 +217,13 @@ export async function getPlayground(env : 'dev'|'local'|'main') :Promise<Playgro
         client,
         wallet
     }
-
 }
 
-
+export  function getKeyFilePath(user:string){
+    return path.resolve(process.env.HOME??"~/" ,`.config/solana/${user}.json`)
+}
 export async function readKeypair(user:string = "id"):Promise<Keypair>{
-    const keyContent = fs.readFileSync(path.resolve(process.env.HOME??"~/" ,`.config/solana/${user}.json`));
+    const keyContent = fs.readFileSync(getKeyFilePath(user));
     const keyBytes = new Uint8Array(JSON.parse(keyContent.toString()));
     const keypair = Keypair.fromSecretKey(keyBytes);
     console.log("red address:",keypair.publicKey.toBase58(),'for user:',user);
@@ -193,5 +244,7 @@ export async function oldReadSigner(keyContent : string){
         const keypair = Keypair.fromSecretKey(keyBytes);
         console.log("address:",keypair.publicKey.toBase58());
 }
+
+
 
 //const sendAndConfirmTransaction = sendAndConfirmTransactionFactory({ rpc, rpcSubscriptions });
